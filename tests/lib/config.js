@@ -766,6 +766,43 @@ describe("Config", function() {
                 assertConfigsEqual(actual, expected);
             });
 
+            it("should allow the plugin to contribute an environment with rules that are not prefixed by the plugin name", function () {
+                var configPath = path.resolve(__dirname, "..", "fixtures", "configurations", "plugins-with-environment.json");
+                requireStubs[examplePluginName] = {
+                    environments: {
+                        strict: {
+                            rules: {
+                                "*/example-rule": 2, // must use the namespace prefix because we also want to
+                                "strict": [2, "function"]  // be able to define a complete environment, not just for this plugin's rules
+                            }
+                        }
+                    },
+                    rules: examplePluginRules
+                };
+
+                StubbedConfig = proxyquire("../../lib/config", requireStubs);
+
+                var configHelper = new StubbedConfig({
+                        baseConfig: false,
+                        useEslintrc: false,
+                        configFile: configPath
+                    }),
+                    file = getFixturePath("broken", "plugins", "console-wrong-quotes.js"),
+                    expected = {
+                        env: {
+                            "example/strict": true
+                        },
+                        rules: {
+                            "example/example-rule": 2,
+                            "strict": [2, "function"]
+                        },
+                        plugins: ["example"]
+                    },
+                    actual = configHelper.getConfig(file);
+
+                assertConfigsEqual(actual, expected);
+            });
+
         });
     });
 });
